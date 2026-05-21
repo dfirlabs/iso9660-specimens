@@ -3,8 +3,8 @@
 # Script to generate ISO 9660 test files
 # Requires Linux with genisoimage
 
-EXIT_SUCCESS=0;
-EXIT_FAILURE=1;
+EXIT_SUCCESS=0
+EXIT_FAILURE=1
 
 # Checks the availability of a binary and exits if not available.
 #
@@ -13,15 +13,15 @@ EXIT_FAILURE=1;
 #
 assert_availability_binary()
 {
-	local BINARY=$1;
+	local BINARY=$1
 
-	which ${BINARY} > /dev/null 2>&1;
-	if test $? -ne ${EXIT_SUCCESS};
+	which ${BINARY} > /dev/null 2>&1
+	if test $? -ne ${EXIT_SUCCESS}
 	then
-		echo "Missing binary: ${BINARY}";
-		echo "";
+		echo "Missing binary: ${BINARY}"
+		echo ""
 
-		exit ${EXIT_FAILURE};
+		exit ${EXIT_FAILURE}
 	fi
 }
 
@@ -32,7 +32,7 @@ assert_availability_binary()
 #
 create_test_file_entries()
 {
-	MOUNT_POINT=$1;
+	MOUNT_POINT=$1
 
 	# Create an empty file
 	touch ${MOUNT_POINT}/emptyfile
@@ -101,17 +101,17 @@ create_test_file_entries()
 #
 create_test_image_file()
 {
-	IMAGE_FILE=$1;
-	IMAGE_SIZE=$2;
-	SECTOR_SIZE=$3;
-	shift 3;
-	local ARGUMENTS=("$@");
+	IMAGE_FILE=$1
+	IMAGE_SIZE=$2
+	SECTOR_SIZE=$3
+	shift 3
+	local ARGUMENTS=("$@")
 
-	dd if=/dev/zero of=${IMAGE_FILE} bs=${SECTOR_SIZE} count=$(( ${IMAGE_SIZE} / ${SECTOR_SIZE} )) 2> /dev/null;
+	dd if=/dev/zero of=${IMAGE_FILE} bs=${SECTOR_SIZE} count=$(( ${IMAGE_SIZE} / ${SECTOR_SIZE} )) 2> /dev/null
 
 	# Notes:
 	# -N #  the minimum number of inodes seems to be 16
-	mke2fs -q ${ARGUMENTS[@]} ${IMAGE_FILE};
+	mke2fs -q ${ARGUMENTS[@]} ${IMAGE_FILE}
 }
 
 # Creates a test image file with file entries.
@@ -124,84 +124,88 @@ create_test_image_file()
 #
 create_test_image_file_with_file_entries()
 {
-	IMAGE_FILE=$1;
-	IMAGE_SIZE=$2;
-	SECTOR_SIZE=$3;
-	shift 3;
-	local ARGUMENTS=("$@");
+	IMAGE_FILE=$1
+	IMAGE_SIZE=$2
+	SECTOR_SIZE=$3
+	shift 3
+	local ARGUMENTS=("$@")
 
-	create_test_image_file ${IMAGE_FILE} ${IMAGE_SIZE} ${SECTOR_SIZE} ${ARGUMENTS[@]};
+	create_test_image_file ${IMAGE_FILE} ${IMAGE_SIZE} ${SECTOR_SIZE} ${ARGUMENTS[@]}
 
-	sudo mount -o loop,rw ${IMAGE_FILE} ${MOUNT_POINT};
+	sudo mount -o loop,rw ${IMAGE_FILE} ${MOUNT_POINT}
 
-	sudo chown ${USERNAME} ${MOUNT_POINT};
+	sudo chown ${USERNAME} ${MOUNT_POINT}
 
-	create_test_file_entries ${MOUNT_POINT};
+	create_test_file_entries ${MOUNT_POINT}
 
-	sudo umount ${MOUNT_POINT};
+	sudo umount ${MOUNT_POINT}
 }
 
-assert_availability_binary dd;
-assert_availability_binary fallocate;
-assert_availability_binary genisoimage;
-assert_availability_binary mke2fs;
-assert_availability_binary setfattr;
-assert_availability_binary truncate;
+assert_availability_binary dd
+assert_availability_binary fallocate
+assert_availability_binary genisoimage
+assert_availability_binary mke2fs
+assert_availability_binary setfattr
+assert_availability_binary truncate
 
-SPECIMENS_PATH="specimens/genisoimage";
+VERSION=$( genisoimage -version | sed 's/genisoimage \(\S*\) .*/\1/' )
 
-if test -d ${SPECIMENS_PATH};
+SPECIMENS_PATH="specimens/genisoimage-${VERSION}"
+
+if test -d ${SPECIMENS_PATH}
 then
-	echo "Specimens directory: ${SPECIMENS_PATH} already exists.";
+	echo "Specimens directory: ${SPECIMENS_PATH} already exists."
 
-	exit ${EXIT_FAILURE};
+	exit ${EXIT_FAILURE}
 fi
 
-mkdir -p ${SPECIMENS_PATH};
+mkdir -p ${SPECIMENS_PATH}
 
-set -e;
+set -e
 
-MOUNT_POINT="/mnt/ext";
+USERNAME=$( whoami )
 
-sudo mkdir -p ${MOUNT_POINT};
+MOUNT_POINT="/mnt/ext"
+
+sudo mkdir -p ${MOUNT_POINT}
 
 # Create an ext2 file system without a journal
-IMAGE_FILE="specimens/ext2.raw"
+IMAGE_FILE="${SPECIMENS_PATH}/ext2.raw"
 
-create_test_image_file_with_file_entries "${IMAGE_FILE}" $(( 4096 * 1024 )) 512 "-L ext2_test" "-t ext2";
+create_test_image_file_with_file_entries "${IMAGE_FILE}" $(( 4096 * 1024 )) 512 "-L ext2_test" "-t ext2"
 
-# Create an IOS 9660 file
-sudo mount -o loop,rw ${IMAGE_FILE} ${MOUNT_POINT};
+sudo mount -o loop,rw ${IMAGE_FILE} ${MOUNT_POINT}
 
 # Level 1: files may only consist of one section and filenames are restricted to 8.3 characters.
-genisoimage -input-charset utf8 -iso-level 1 -o ${SPECIMENS_PATH}/iso9660-level1.raw ${MOUNT_POINT};
+genisoimage -input-charset utf8 -iso-level 1 -o ${SPECIMENS_PATH}/iso9660-level1.raw ${MOUNT_POINT}
 
 # Level 2: files may only consist of one section.
-genisoimage -input-charset utf8 -iso-level 2 -o ${SPECIMENS_PATH}/iso9660-level2.raw ${MOUNT_POINT};
+genisoimage -input-charset utf8 -iso-level 2 -o ${SPECIMENS_PATH}/iso9660-level2.raw ${MOUNT_POINT}
 
 # Level 3: no restrictions (other than ISO-9660:1988) do apply.
-genisoimage -input-charset utf8 -iso-level 3 -o ${SPECIMENS_PATH}/iso9660-level3.raw ${MOUNT_POINT};
+genisoimage -input-charset utf8 -iso-level 3 -o ${SPECIMENS_PATH}/iso9660-level3.raw ${MOUNT_POINT}
 
 # Level 4: ISO 9660 version 2 (ISO-9660:1999).
-genisoimage -input-charset iso8859-1 -iso-level 4 -o ${SPECIMENS_PATH}/iso9660-level4.raw ${MOUNT_POINT};
+genisoimage -input-charset iso8859-1 -iso-level 4 -o ${SPECIMENS_PATH}/iso9660-level4.raw ${MOUNT_POINT}
 
-genisoimage -input-charset utf8 -joliet -o ${SPECIMENS_PATH}/iso9660-joliet.raw ${MOUNT_POINT};
+genisoimage -input-charset utf8 -joliet -o ${SPECIMENS_PATH}/iso9660-joliet.raw ${MOUNT_POINT}
 
-genisoimage -input-charset utf8 -joliet -joliet-long -o ${SPECIMENS_PATH}/iso9660-joliet-long.raw ${MOUNT_POINT};
+genisoimage -input-charset utf8 -joliet -joliet-long -o ${SPECIMENS_PATH}/iso9660-joliet-long.raw ${MOUNT_POINT}
 
-genisoimage -input-charset utf8 -rock -o ${SPECIMENS_PATH}/iso9660-rock.raw ${MOUNT_POINT};
+genisoimage -input-charset utf8 -rock -o ${SPECIMENS_PATH}/iso9660-rock.raw ${MOUNT_POINT}
 
-genisoimage -input-charset utf8 -XA -o ${SPECIMENS_PATH}/iso9660-xa.raw ${MOUNT_POINT};
+genisoimage -input-charset utf8 -XA -o ${SPECIMENS_PATH}/iso9660-xa.raw ${MOUNT_POINT}
 
-genisoimage -input-charset iso8859-1 -apple -rock -o ${SPECIMENS_PATH}/iso9660-apple-rock.raw ${MOUNT_POINT};
+genisoimage -input-charset iso8859-1 -apple -rock -o ${SPECIMENS_PATH}/iso9660-apple-rock.raw ${MOUNT_POINT}
 
-genisoimage -input-charset iso8859-1 -apple -XA -o ${SPECIMENS_PATH}/iso9660-apple-xa.raw ${MOUNT_POINT};
+genisoimage -input-charset iso8859-1 -apple -XA -o ${SPECIMENS_PATH}/iso9660-apple-xa.raw ${MOUNT_POINT}
 
-genisoimage -input-charset iso8859-1 -hfs -rock -o ${SPECIMENS_PATH}/iso9660-hfs-rock.raw ${MOUNT_POINT};
+genisoimage -input-charset iso8859-1 -hfs -rock -o ${SPECIMENS_PATH}/iso9660-hfs-rock.raw ${MOUNT_POINT}
 
-genisoimage -input-charset iso8859-1 -hfs -XA -o ${SPECIMENS_PATH}/iso9660-hfs-xa.raw ${MOUNT_POINT};
+genisoimage -input-charset iso8859-1 -hfs -XA -o ${SPECIMENS_PATH}/iso9660-hfs-xa.raw ${MOUNT_POINT}
 
-sudo umount ${MOUNT_POINT};
+sudo umount ${MOUNT_POINT}
 
-exit ${EXIT_SUCCESS};
+rm -f ${IMAGE_FILE}
 
+exit ${EXIT_SUCCESS}
