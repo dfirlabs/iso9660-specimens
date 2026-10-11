@@ -25,13 +25,16 @@ jobs:
         DEBIAN_FRONTEND: noninteractive
       run: |
         apt update -q
-        apt install -y attr e2fsprogs genisoimage sudo
+        apt install -y attr e2fsprogs genisoimage sudo xorriso
     - name: Generate test data
       env:
         LANG: en_US.UTF-8
       run: |
         ./generate-specimens-linux.sh
+        ./generate-specimens-xorriso.sh
     - uses: actions/upload-artifact@v7
       with:
         name: specimens-linux
-        path: specimens/genisoimage-*/*.raw
+        path: |
+          specimens/genisoimage-*/*.raw
+          specimens/xorriso-*/*.iso
